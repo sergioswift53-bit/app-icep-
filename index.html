@@ -1,4 +1,111 @@
 <!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primaria El Nayar - Lector Seguro</title>
+    <!-- Cargamos versión ultra-estable 2.3.8 -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .watermark { position: fixed; bottom: 15px; width: 100%; text-align: center; color: rgba(0,0,0,0.3); font-size: 10px; font-weight: bold; pointer-events: none; z-index: 50; letter-spacing: 2px; }
+        #reader { border-radius: 20px; overflow: hidden; background: #000; min-height: 250px; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen pb-20">
+
+    <div class="max-w-md mx-auto p-5">
+        <header class="text-center mb-6">
+            <h1 class="text-2xl font-black text-green-800">PRIMARIA EL NAYAR</h1>
+            <p class="text-gray-500 font-bold text-xs uppercase tracking-widest">Grupo A9 - Durango</p>
+        </header>
+
+        <!-- BOTONES DE ACCIÓN -->
+        <div class="space-y-3 mb-6">
+            <button onclick="activarCamaraSegura()" class="w-full bg-green-600 text-white py-4 rounded-2xl shadow-lg font-black flex items-center justify-center gap-2 active:scale-95 transition-all">
+                📷 INICIAR CÁMARA (CLICK AQUÍ)
+            </button>
+            
+            <div class="flex gap-2 text-center text-[10px] font-bold text-gray-400 uppercase">
+                <label class="flex-1 bg-white p-3 rounded-xl border-2 border-dashed cursor-pointer">
+                    📁 Subir Foto QR
+                    <input type="file" id="qr-input-file" accept="image/*" class="hidden">
+                </label>
+                <button onclick="location.reload()" class="bg-white p-3 rounded-xl border-2">🔄 Recargar</button>
+            </div>
+        </div>
+
+        <div id="reader-container" class="hidden"><div id="reader"></div></div>
+
+        <!-- FICHA (OCULTA) -->
+        <div id="student-card" class="hidden bg-white rounded-3xl shadow-2xl p-6 border-t-8 border-green-600">
+            <h2 class="text-2xl font-black text-gray-800 mb-4" id="st-nombre"></h2>
+            <div class="space-y-3 text-sm">
+                <p><strong>Grado:</strong> <span id="st-grado"></span></p>
+                <div class="bg-red-50 p-3 rounded-xl text-red-700 font-bold">
+                    ⚠️ Alergias: <span id="st-alergias"></span>
+                </div>
+                <p><strong>Tutor:</strong> <span id="st-tutor"></span></p>
+                <a id="st-tel" href="#" class="block text-center bg-green-100 text-green-700 py-3 rounded-xl font-black underline">📞 LLAMAR EMERGENCIA</a>
+            </div>
+            <button onclick="location.reload()" class="w-full bg-gray-800 text-white py-3 rounded-xl mt-6 font-bold">ESCANEAR OTRO</button>
+        </div>
+    </div>
+
+    <div class="watermark uppercase">CREADO POR EL GRUPO A9</div>
+
+    <script>
+        const estudiantes = {
+            "ALUM-001": { nombre: "Juan Pérez García", grado: "3° A", alergias: "Nueces", contacto: "5551234567", tutor: "María García" },
+            "ALUM-002": { nombre: "Lucía Fernández", grado: "1° B", alergias: "Ninguna", contacto: "5559876543", tutor: "Roberto F." }
+        };
+
+        let html5QrCode;
+
+        function mostrarFicha(id) {
+            const alumno = estudiantes[id.toUpperCase().trim()];
+            if (alumno) {
+                if(html5QrCode) html5QrCode.stop().catch(() => {});
+                document.getElementById('reader-container').classList.add('hidden');
+                document.getElementById('student-card').classList.remove('hidden');
+                document.getElementById('st-nombre').innerText = alumno.nombre;
+                document.getElementById('st-grado').innerText = alumno.grado;
+                document.getElementById('st-alergias').innerText = alumno.alergias;
+                document.getElementById('st-tutor').innerText = alumno.tutor;
+                document.getElementById('st-tel').href = "tel:" + alumno.contacto;
+            } else {
+                alert("ID: " + id + " no encontrado.");
+            }
+        }
+
+        // FUNCIÓN CLAVE: Agrega retraso para evitar errores de inicialización
+        function activarCamaraSegura() {
+            document.getElementById('reader-container').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            
+            // Retraso de 1 segundo para Chrome Mobile
+            setTimeout(() => {
+                html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    { fps: 10, qrbox: 250 },
+                    mostrarFicha
+                ).catch(err => {
+                    alert("Error: Verifica permisos de cámara en el candado de la barra de direcciones.");
+                });
+            }, 1000);
+        }
+
+        document.getElementById('qr-input-file').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const qrScanner = new Html5Qrcode("reader");
+            qrScanner.scanFile(file, true)
+                .then(decodedText => mostrarFicha(decodedText))
+                .catch(err => alert("No se detectó un QR. Prueba tomando la foto más cerca."));
+        });
+    </script>
+</body>
+</html><!DOCTYPE html>
 <html lang="es"><!DOCTYPE html>
 <html lang="es">
 <head>
@@ -300,3 +407,4 @@
 </body>
 
 </html>
+
