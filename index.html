@@ -1,5 +1,169 @@
 <!DOCTYPE html>
+<html lang="es"><!DOCTYPE html>
 <html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primaria El Nayar - Control QR</title>
+    <!-- Librería QR con parche de compatibilidad -->
+    <script src="https://unpkg.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .watermark { position: fixed; bottom: 15px; width: 100%; text-align: center; color: rgba(0,0,0,0.3); font-size: 10px; font-weight: bold; pointer-events: none; z-index: 50; letter-spacing: 2px; }
+        #reader { border-radius: 20px; overflow: hidden; border: 4px solid #e2e8f0; background: #000; }
+        /* Animación para la ficha */
+        .slide-up { animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen pb-20 font-sans">
+
+    <div class="max-w-md mx-auto p-5">
+        <!-- ENCABEZADO ESCUELA EL NAYAR -->
+        <header class="text-center mb-6">
+            <div class="inline-block bg-green-600 text-white p-3 rounded-full mb-3 shadow-lg">
+                <svg xmlns="http://www.w3.org" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path d="M12 14l9-5-9-5-9 5 9 5z" />
+                    <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                </svg>
+            </div>
+            <h1 class="text-2xl font-black text-green-800 leading-tight">PRIMARIA EL NAYAR</h1>
+            <p class="text-gray-500 font-bold text-sm tracking-widest">DURANGO, DGO.</p>
+        </header>
+
+        <!-- PANEL DE ACCIONES -->
+        <div class="grid grid-cols-1 gap-4 mb-6">
+            <!-- BOTÓN CÁMARA (FORZADO) -->
+            <button onclick="forzarCamara()" class="w-full bg-green-600 text-white py-4 rounded-2xl shadow-md font-bold flex items-center justify-center gap-3 active:scale-95 transition-all">
+                <span>📷</span> ABRIR ESCÁNER EN VIVO
+            </button>
+            
+            <div class="flex gap-2">
+                <label class="flex-1 bg-white border-2 border-dashed border-gray-300 py-3 rounded-2xl text-center cursor-pointer hover:bg-gray-100 transition">
+                    <span class="text-xs font-bold text-gray-500">📁 SUBIR QR</span>
+                    <input type="file" id="qr-input-file" accept="image/*" class="hidden">
+                </label>
+                <button onclick="document.getElementById('manual-panel').classList.toggle('hidden')" class="bg-gray-200 px-4 rounded-2xl">
+                    ⌨️
+                </button>
+            </div>
+        </div>
+
+        <!-- BUSCADOR MANUAL OCULTO -->
+        <div id="manual-panel" class="hidden bg-white p-4 rounded-xl shadow-sm border mb-6">
+            <div class="flex gap-2">
+                <input type="text" id="manual-id" placeholder="ID del Alumno" class="flex-1 border rounded-lg px-3 py-2 outline-none uppercase">
+                <button onclick="buscarManual()" class="bg-green-700 text-white px-4 py-2 rounded-lg">Ver</button>
+            </div>
+        </div>
+
+        <!-- LECTOR -->
+        <div id="reader-container" class="hidden mb-6">
+            <div id="reader"></div>
+            <p class="text-center text-xs text-gray-400 mt-2">Apunta la cámara al código QR</p>
+        </div>
+
+        <!-- FICHA DEL ESTUDIANTE -->
+        <div id="student-card" class="hidden slide-up bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
+            <div class="bg-green-600 p-6 text-white text-center">
+                <p class="text-xs font-bold opacity-80 mb-1 tracking-widest">ESTUDIANTE REGISTRADO</p>
+                <h2 class="text-2xl font-black" id="st-nombre tracking-tight">CARGANDO...</h2>
+            </div>
+            
+            <div class="p-6 space-y-5">
+                <div class="flex justify-between border-b pb-3">
+                    <span class="text-gray-400 font-bold text-xs uppercase">Matrícula</span>
+                    <span id="st-id-tag" class="font-black text-green-700 text-sm"></span>
+                </div>
+
+                <div>
+                    <span class="text-gray-400 font-bold text-xs uppercase">Grado y Grupo</span>
+                    <p id="st-grado" class="font-bold text-gray-800"></p>
+                </div>
+
+                <div class="bg-red-50 p-4 rounded-2xl border border-red-100">
+                    <span class="text-red-400 font-bold text-[10px] uppercase block mb-1">Alergias / Observaciones</span>
+                    <p id="st-alergias" class="font-black text-red-700 text-sm"></p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <span class="text-gray-400 font-bold text-[10px] uppercase">Padre o Tutor</span>
+                        <p id="st-tutor" class="font-bold text-gray-700 text-sm"></p>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 font-bold text-[10px] uppercase">Emergencias</span>
+                        <a id="st-tel" href="#" class="text-green-600 font-black text-sm flex items-center gap-1 underline">📞 Llamar</a>
+                    </div>
+                </div>
+
+                <button onclick="location.reload()" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold mt-4 shadow-lg active:scale-95 transition-all">TERMINAR CONSULTA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MARCA DE AGUA -->
+    <div class="watermark uppercase">
+        DESARROLLADO POR EL <span class="text-green-600">GRUPO A9</span>
+    </div>
+
+    <script>
+        // BASE DE DATOS LOCAL
+        const estudiantes = {
+            "ALUM-001": { nombre: "Juan Pérez García", grado: "3° A", alergias: "Asma y Polen", contacto: "5551234567", tutor: "María García" },
+            "ALUM-002": { nombre: "Lucía Fernández", grado: "1° B", alergias: "Ninguna", contacto: "5559876543", tutor: "Roberto F." }
+        };
+
+        let html5QrCode;
+
+        function mostrarFicha(id) {
+            const alumno = estudiantes[id.trim().toUpperCase()];
+            if (alumno) {
+                if(html5QrCode) html5QrCode.stop();
+                document.getElementById('reader-container').classList.add('hidden');
+                document.getElementById('student-card').classList.remove('hidden');
+                
+                document.getElementById('st-id-tag').innerText = id;
+                document.getElementById('st-nombre').innerText = alumno.nombre;
+                document.getElementById('st-grado').innerText = alumno.grado;
+                document.getElementById('st-alergias').innerText = alumno.alergias;
+                document.getElementById('st-tutor').innerText = alumno.tutor;
+                document.getElementById('st-tel').href = "tel:" + alumno.contacto;
+            } else {
+                alert("ID: " + id + " no encontrado en la base de datos El Nayar.");
+            }
+        }
+
+        async function forzarCamara() {
+            document.getElementById('reader-container').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            // Intentamos iniciar directamente la cámara trasera
+            html5QrCode.start({ facingMode: "environment" }, config, mostrarFicha)
+            .catch(err => {
+                alert("Error de cámara. Por favor permite el acceso en el candado de la URL.");
+            });
+        }
+
+        function buscarManual() {
+            const val = document.getElementById('manual-id').value;
+            if(val) mostrarFicha(val);
+        }
+
+        // Procesar archivo QR
+        document.getElementById('qr-input-file').addEventListener('change', e => {
+            if (e.target.files.length === 0) return;
+            const file = e.target.files[0];
+            const qrScanner = new Html5Qrcode("reader");
+            qrScanner.scanFile(file, true)
+                .then(decodedText => mostrarFicha(decodedText))
+                .catch(err => alert("No se detectó un QR claro en la imagen."));
+        });
+    </script>
+</body>
+</html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -134,4 +298,5 @@
         }
     </script>
 </body>
+
 </html>
