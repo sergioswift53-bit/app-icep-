@@ -2,145 +2,184 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Primaria El Nayar Durango - Lector QR</title>
-    <!-- Librería estable 2.3.8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primaria El Nayar - Gestión Escolar</title>
     <script src="https://unpkg.com"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #f8fafc; padding-bottom: 100px; }
-        #reader { border-radius: 20px; overflow: hidden; background: #000; border: 4px solid #16a34a; min-height: 280px; }
-        .footer-a9 { position: fixed; bottom: 0; left: 0; width: 100%; background: #ffffff; padding: 15px; border-top: 1px solid #e2e8f0; text-align: center; z-index: 1000; }
+        .watermark { position: fixed; bottom: 15px; width: 100%; text-align: center; color: rgba(0,0,0,0.3); font-size: 10px; font-weight: bold; pointer-events: none; z-index: 50; letter-spacing: 2px; }
+        #reader { border-radius: 20px; overflow: hidden; background: #000; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; overflow-y: auto; }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 min-h-screen pb-20">
 
-    <div class="max-w-md mx-auto p-6">
-        <header class="text-center mb-6">
-            <h1 class="text-3xl font-black text-green-900 leading-tight">PRIMARIA EL NAYAR<br>DURANGO</h1>
-            <p class="text-gray-400 font-bold text-[10px] tracking-[0.3em] uppercase mt-2">Gestión de Alumnos</p>
+    <div class="max-w-md mx-auto p-5">
+        <header class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-black text-green-800">EL NAYAR</h1>
+                <p class="text-gray-500 font-bold text-[10px] uppercase tracking-widest">Lector Inteligente</p>
+            </div>
+            <button onclick="toggleModal('modal-config')" class="bg-white p-3 rounded-full shadow-md text-xl">⚙️</button>
         </header>
 
-        <!-- BUSCADOR MANUAL -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border mb-4">
-            <div class="flex gap-2">
-                <input type="text" id="manual-id" placeholder="ID (EJ: ALUM-001)" class="flex-1 bg-gray-50 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-green-600 uppercase">
-                <button onclick="buscarManual()" class="bg-gray-800 text-white px-5 py-3 rounded-xl text-xs font-black active:scale-95 transition-transform">VER</button>
-            </div>
+        <!-- BOTONES PRINCIPALES -->
+        <div class="grid grid-cols-1 gap-3 mb-6">
+            <button onclick="activarCamaraSegura()" class="w-full bg-green-600 text-white py-4 rounded-2xl shadow-lg font-black flex items-center justify-center gap-2 active:scale-95 transition-all">
+                📷 ESCANEAR QR
+            </button>
+            <button onclick="prepararNuevoAlumno()" class="w-full bg-blue-600 text-white py-4 rounded-2xl shadow-lg font-black flex items-center justify-center gap-2 active:scale-95 transition-all">
+                ➕ AGREGAR NUEVO ALUMNO
+            </button>
         </div>
 
-        <!-- BOTÓN DE CÁMARA (OBLIGATORIO PARA PERMISOS) -->
-        <button id="btn-scan" onclick="activarCamara()" class="w-full bg-green-700 text-white py-5 rounded-2xl shadow-xl font-black flex items-center justify-center gap-3 mb-4 active:scale-95 transition-all text-lg border-b-4 border-green-900">
-            <span>📷</span> ACTIVAR CÁMARA
-        </button>
-
-        <!-- LECTOR -->
-        <div id="reader-container" class="hidden mb-6">
-            <div id="reader"></div>
-            <button onclick="location.reload()" class="w-full mt-4 bg-white border-2 py-3 rounded-xl text-xs font-black text-red-500 uppercase">Cerrar Escáner</button>
-        </div>
-
-        <!-- SUBIR IMAGEN -->
-        <div class="text-center mb-6">
-            <label class="inline-block px-8 py-4 bg-white border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer hover:border-green-600">
-                <span class="text-[11px] font-black text-gray-500 uppercase tracking-widest">📁 SUBIR IMAGEN QR</span>
-                <input type="file" id="qr-input-file" accept="image/*" class="hidden">
-            </label>
-        </div>
+        <div id="reader-container" class="hidden mb-6"><div id="reader"></div></div>
 
         <!-- FICHA DEL ALUMNO -->
-        <div id="student-card" class="hidden bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100">
-            <div class="bg-green-800 p-8 text-white text-center">
-                <p class="text-[10px] font-bold opacity-60 mb-2 uppercase tracking-widest">Nayarense Registrado</p>
-                <h2 class="text-2xl font-black" id="st-nombre"></h2>
+        <div id="student-card" class="hidden bg-white rounded-3xl shadow-2xl overflow-hidden border-t-8 border-green-600">
+            <div id="st-foto-cont" class="w-full h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
+                <img id="st-foto" src="" class="w-full h-full object-cover hidden">
+                <span id="st-sin-foto" class="text-gray-400 font-bold">SIN FOTO</span>
             </div>
-            
-            <div class="p-8 space-y-6">
-                <div class="flex justify-between border-b pb-4">
-                    <span class="text-[10px] font-bold text-gray-400 uppercase">Grado</span>
-                    <span id="st-grado" class="font-black text-gray-800"></span>
+            <div class="p-6">
+                <h2 class="text-2xl font-black text-gray-800 mb-2" id="st-nombre"></h2>
+                <p class="text-xs font-bold text-green-600 mb-4 tracking-widest" id="st-id-display"></p>
+                <div class="space-y-3 text-sm">
+                    <p><strong>Tutor:</strong> <span id="st-tutor"></span></p>
+                    <div class="bg-red-50 p-3 rounded-xl text-red-700 font-bold">
+                        ⚠️ Alergias: <span id="st-alergias"></span>
+                    </div>
+                    <a id="st-tel" href="#" class="block text-center bg-green-100 text-green-700 py-3 rounded-xl font-black underline italic">📞 LLAMAR AL TUTOR</a>
                 </div>
-
-                <div class="bg-red-50 p-5 rounded-2xl border-l-4 border-red-500 text-center">
-                    <span class="text-red-500 font-bold text-[10px] uppercase block mb-1">Alergias / Médicos</span>
-                    <p id="st-alergias" class="font-black text-red-700 text-sm"></p>
-                </div>
-
-                <div class="text-center">
-                    <span class="text-[10px] font-bold text-gray-400 uppercase">Tutor:</span>
-                    <p id="st-tutor" class="font-bold text-gray-800"></p>
-                </div>
-
-                <a id="st-tel" href="#" class="block text-center bg-green-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-green-100 flex items-center justify-center gap-2">
-                    <span>📞</span> LLAMAR AL TUTOR
-                </a>
-
-                <button onclick="location.reload()" class="w-full text-[10px] font-black text-gray-300 uppercase tracking-widest pt-4">Nueva Consulta</button>
+                <button onclick="location.reload()" class="w-full bg-gray-800 text-white py-3 rounded-xl mt-6 font-bold uppercase tracking-tighter">Cerrar</button>
             </div>
         </div>
     </div>
 
-    <!-- MARCA DE AGUA LEGIBLE -->
-    <footer class="footer-a9">
-        <p class="text-[12px] font-black text-gray-400 tracking-[0.2em] uppercase">
-            DESARROLLADO POR EL <span class="text-green-700">GRUPO A9</span>
-        </p>
-    </footer>
+    <!-- MODAL FORMULARIO REGISTRO -->
+    <div id="modal-registro" class="modal p-5">
+        <div class="bg-white rounded-3xl p-6 max-w-md mx-auto my-10 shadow-2xl">
+            <h3 class="text-xl font-black text-blue-800 mb-4">NUEVO REGISTRO</h3>
+            <form id="form-alumno" class="space-y-4">
+                <div><label class="text-[10px] font-bold text-gray-400">ID ASIGNADO:</label>
+                <input type="text" id="reg-id" readonly class="w-full bg-gray-100 p-2 rounded-lg font-mono font-bold text-blue-600"></div>
+                
+                <input type="text" id="reg-nombre" placeholder="Nombre completo del alumno" class="w-full p-3 border-2 rounded-xl focus:border-blue-500 outline-none" required>
+                <input type="text" id="reg-tutor" placeholder="Nombre del tutor" class="w-full p-3 border-2 rounded-xl focus:border-blue-500 outline-none" required>
+                <input type="tel" id="reg-tel" placeholder="Teléfono de emergencia" class="w-full p-3 border-2 rounded-xl focus:border-blue-500 outline-none" required>
+                <textarea id="reg-alergias" placeholder="Alergias o condiciones médicas" class="w-full p-3 border-2 rounded-xl focus:border-blue-500 outline-none"></textarea>
+                
+                <div class="bg-gray-50 p-4 rounded-xl border-2 border-dashed">
+                    <label class="block text-center text-xs font-bold text-gray-500 mb-2">FOTO DEL ALUMNO</label>
+                    <input type="file" id="reg-foto" accept="image/*" class="w-full text-xs">
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="button" onclick="toggleModal('modal-registro')" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">CANCELAR</button>
+                    <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">GUARDAR</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIGURACIONES -->
+    <div id="modal-config" class="modal p-5">
+        <div class="bg-white rounded-3xl p-6 max-w-md mx-auto my-10">
+            <h3 class="text-xl font-black mb-4">CONFIGURACIONES</h3>
+            <p class="text-gray-500 italic mb-6">Próximamente más opciones aquí...</p>
+            <button onclick="exportarDatos()" class="w-full bg-gray-100 p-3 rounded-xl text-sm font-bold mb-3">📥 EXPORTAR COPIA DE SEGURIDAD</button>
+            <button onclick="toggleModal('modal-config')" class="w-full bg-red-500 text-white py-3 rounded-xl font-bold">VOLVER</button>
+        </div>
+    </div>
+
+    <div class="watermark uppercase">SISTEMA DINÁMICO A9</div>
 
     <script>
-        const estudiantes = {
-            "ALUM-001": { nombre: "Juan Pérez García", grado: "3° A", alergias: "Alérgico a Penicilina", contacto: "5551234567", tutor: "María García" },
-            "ALUM-002": { nombre: "Lucía Fernández", grado: "1° B", alergias: "Ninguna", contacto: "5559876543", tutor: "Roberto F." }
+        // Cargar datos de LocalStorage o iniciar vacíos
+        let db = JSON.parse(localStorage.getItem('alumnos_db')) || {};
+
+        function toggleModal(id) {
+            const m = document.getElementById(id);
+            m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function prepararNuevoAlumno() {
+            // Calcular consecutivo ALUM-001
+            const indices = Object.keys(db).map(k => parseInt(k.split('-')[1]));
+            const max = indices.length > 0 ? Math.max(...indices) : 0;
+            const nextID = "ALUM-" + (max + 1).toString().padStart(3, '0');
+            
+            document.getElementById('reg-id').value = nextID;
+            toggleModal('modal-registro');
+        }
+
+        document.getElementById('form-alumno').onsubmit = function(e) {
+            e.preventDefault();
+            const id = document.getElementById('reg-id').value;
+            const fotoFile = document.getElementById('reg-foto').files[0];
+
+            const guardar = (fotoBase64) => {
+                db[id] = {
+                    nombre: document.getElementById('reg-nombre').value,
+                    tutor: document.getElementById('reg-tutor').value,
+                    contacto: document.getElementById('reg-tel').value,
+                    alergias: document.getElementById('reg-alergias').value || "Ninguna",
+                    foto: fotoBase64 || null
+                };
+                localStorage.setItem('alumnos_db', JSON.stringify(db));
+                alert("Alumno " + id + " guardado con éxito.");
+                location.reload();
+            };
+
+            if (fotoFile) {
+                const reader = new FileReader();
+                reader.onload = (e) => guardar(e.target.result);
+                reader.readAsDataURL(fotoFile);
+            } else {
+                guardar(null);
+            }
         };
 
-        let html5QrCode;
-
         function mostrarFicha(id) {
-            const alumno = estudiantes[id.toUpperCase().trim()];
+            const alumno = db[id.toUpperCase().trim()];
             if (alumno) {
                 if(html5QrCode) html5QrCode.stop().catch(() => {});
                 document.getElementById('reader-container').classList.add('hidden');
-                document.getElementById('btn-scan').classList.add('hidden');
                 document.getElementById('student-card').classList.remove('hidden');
                 
                 document.getElementById('st-nombre').innerText = alumno.nombre;
-                document.getElementById('st-grado').innerText = alumno.grado;
-                document.getElementById('st-alergias').innerText = alumno.alergias;
+                document.getElementById('st-id-display').innerText = "ID: " + id;
                 document.getElementById('st-tutor').innerText = alumno.tutor;
+                document.getElementById('st-alergias').innerText = alumno.alergias;
                 document.getElementById('st-tel').href = "tel:" + alumno.contacto;
+
+                if(alumno.foto) {
+                    document.getElementById('st-foto').src = alumno.foto;
+                    document.getElementById('st-foto').classList.remove('hidden');
+                    document.getElementById('st-sin-foto').classList.add('hidden');
+                }
             } else {
-                alert("ID: " + id + " no encontrado.");
+                alert("El código " + id + " no está registrado.");
             }
         }
 
-        function buscarManual() {
-            const val = document.getElementById('manual-id').value;
-            if(val) mostrarFicha(val);
-        }
-
-        async function activarCamara() {
+        let html5QrCode;
+        function activarCamaraSegura() {
             document.getElementById('reader-container').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("reader");
-            
-            // Intentar con configuración móvil forzada
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            
-            html5QrCode.start({ facingMode: "environment" }, config, mostrarFicha)
-            .catch(err => {
-                alert("Error: Asegúrate de dar permiso a la cámara en el candado de la URL.");
-                console.error(err);
-            });
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, mostrarFicha)
+            .catch(err => alert("Error de cámara."));
         }
 
-        // Sistema de carga de imagen (Corregido)
-        document.getElementById('qr-input-file').addEventListener('change', e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const scanner = new Html5Qrcode("reader");
-            scanner.scanFile(file, true)
-                .then(decodedText => mostrarFicha(decodedText))
-                .catch(err => alert("No se pudo leer el QR. Asegúrate que la foto sea clara."));
-        });
+        function exportarDatos() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "respaldo_alumnos.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
     </script>
 </body>
 </html>
