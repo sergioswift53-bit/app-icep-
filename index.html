@@ -3,230 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escuela Secundaria El Nayar Durango</title>
+    <title>Escuela Primaria El Nayar Durango</title>
+    <!-- Librerías Externas -->
     <script src="https://unpkg.com"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .watermark { position: fixed; bottom: 15px; width: 100%; text-align: center; color: rgba(0,0,0,0.2); font-size: 9px; font-weight: bold; pointer-events: none; z-index: 50; letter-spacing: 2px; }
-        #reader { border-radius: 20px; overflow: hidden; background: #000; min-height: 250px; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; overflow-y: auto; padding: 20px; }
+        .watermark { position: fixed; bottom: 15px; width: 100%; text-align: center; color: rgba(30, 58, 138, 0.3); font-size: 11px; font-weight: bold; pointer-events: none; z-index: 50; letter-spacing: 1px; }
+        #reader { border-radius: 15px; overflow: hidden; background: #000; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; overflow-y: auto; padding: 15px; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-20">
+<body class="bg-slate-100 min-h-screen pb-24 font-sans">
 
-    <div class="max-w-md mx-auto p-5">
-        <header class="flex justify-between items-start mb-6">
-            <div>
-                <h1 class="text-2xl font-black text-green-900 leading-none">EL NAYAR</h1>
-                <p class="text-green-700 font-bold text-[10px] tracking-[0.2em]">DURANGO, MÉXICO</p>
-            </div>
-            <button onclick="toggleModal('modal-config')" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200">⚙️</button>
+    <div class="max-w-md mx-auto p-4">
+        <!-- TÍTULO EN AZUL -->
+        <header class="text-center mb-6">
+            <h1 class="text-2xl font-black text-blue-700 uppercase leading-tight">Escuela Primaria<br>El Nayar Durango</h1>
         </header>
 
         <!-- BUSCADOR MANUAL -->
-        <div class="mb-6 relative">
-            <input type="text" id="buscador" onkeyup="buscarAlumno()" placeholder="🔍 Buscar por nombre o ID..." 
-                class="w-full p-4 rounded-2xl border-2 border-white shadow-sm focus:border-green-500 outline-none transition-all font-medium">
-            <div id="resultados-busqueda" class="absolute w-full bg-white shadow-xl rounded-xl mt-1 z-50 hidden max-h-60 overflow-y-auto border border-slate-100"></div>
+        <div class="mb-4">
+            <input type="text" id="input-busqueda" onkeyup="buscadorManual()" placeholder="🔍 Buscar alumno por nombre o ID..." 
+                class="w-full p-4 rounded-2xl border-2 border-white shadow-sm focus:border-blue-500 outline-none transition-all">
+            <div id="lista-busqueda" class="hidden bg-white mt-1 rounded-xl shadow-xl border border-slate-200 overflow-hidden"></div>
         </div>
 
-        <div class="grid grid-cols-1 gap-3 mb-6">
-            <button id="btn-scan" onclick="alternarCamara()" class="w-full bg-green-600 text-white py-4 rounded-2xl shadow-lg font-black flex items-center justify-center gap-2 active:scale-95 transition-all">
-                <span id="scan-text">📷 INICIAR ESCÁNER QR</span>
+        <!-- BOTONERA PRINCIPAL -->
+        <div class="grid grid-cols-1 gap-3">
+            <button onclick="gestionarCamara()" id="btn-camara" class="w-full bg-blue-600 text-white py-4 rounded-2xl shadow-lg font-bold flex items-center justify-center gap-2 active:scale-95 transition-all">
+                📷 ABRIR LECTOR QR
             </button>
-            <button onclick="prepararNuevoAlumno()" class="w-full bg-blue-600 text-white py-4 rounded-2xl shadow-lg font-black flex items-center justify-center gap-2 active:scale-95 transition-all">
-                ➕ REGISTRAR ALUMNO
+            
+            <button onclick="abrirRegistro()" class="w-full bg-white text-blue-700 border-2 border-blue-600 py-4 rounded-2xl shadow-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-all">
+                ➕ AGREGAR ALUMNO
+            </button>
+
+            <button onclick="alert('Módulo de configuraciones en desarrollo')" class="w-full bg-slate-200 text-slate-600 py-3 rounded-2xl font-bold text-sm">
+                ⚙️ CONFIGURACIONES
             </button>
         </div>
 
-        <div id="reader-container" class="hidden mb-6 relative">
+        <!-- CONTENEDOR CÁMARA -->
+        <div id="cont-lector" class="hidden mt-4">
             <div id="reader"></div>
-            <button onclick="alternarCamara()" class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full text-xs font-bold">X</button>
+            <p class="text-center text-[10px] text-slate-500 mt-2 font-bold uppercase">Apunta al código QR del alumno</p>
         </div>
 
-        <!-- FICHA DEL ALUMNO -->
-        <div id="student-card" class="hidden bg-white rounded-3xl shadow-2xl overflow-hidden border-b-8 border-green-600">
-            <div class="w-full h-56 bg-slate-200 flex items-center justify-center overflow-hidden">
-                <img id="st-foto" src="" class="w-full h-full object-cover hidden">
-                <div id="st-sin-foto" class="text-slate-400 text-4xl">👤</div>
+        <!-- FICHA DEL ALUMNO (RESULTADO) -->
+        <div id="ficha-alumno" class="hidden mt-6 bg-white rounded-3xl shadow-2xl overflow-hidden border-t-8 border-blue-600 animate-bounce-in">
+            <div id="foto-visor" class="w-full h-48 bg-slate-100 flex items-center justify-center">
+                <img id="img-alumno" class="w-full h-full object-cover hidden">
+                <span id="sin-foto" class="text-slate-300 font-black text-4xl">👤</span>
             </div>
-            <div class="p-6 text-center">
-                <h2 class="text-2xl font-black text-slate-800" id="st-nombre"></h2>
-                <p id="st-id-display" class="text-green-600 font-mono font-bold mb-4"></p>
-                
-                <div class="text-left space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <p class="text-sm"><strong>Tutor:</strong> <span id="st-tutor" class="text-slate-600"></span></p>
-                    <div class="p-3 bg-red-100 rounded-xl">
-                        <p class="text-xs text-red-800 font-black uppercase mb-1">Alergias / Notas:</p>
-                        <p id="st-alergias" class="text-sm text-red-700 font-bold italic"></p>
+            <div class="p-6">
+                <h2 id="res-nombre" class="text-2xl font-black text-slate-800 uppercase"></h2>
+                <p id="res-id" class="text-blue-600 font-mono font-bold mb-4"></p>
+                <div class="space-y-2 text-sm border-t pt-4">
+                    <p><strong>Tutor:</strong> <span id="res-tutor"></span></p>
+                    <div class="p-3 bg-red-50 text-red-700 rounded-xl font-bold">
+                        Alergias: <span id="res-alergias"></span>
                     </div>
                 </div>
-                
-                <a id="st-tel" href="#" class="block w-full bg-green-100 text-green-700 py-4 rounded-2xl mt-4 font-black shadow-inner">📞 LLAMAR EMERGENCIAS</a>
-                <button onclick="cerrarFicha()" class="w-full text-slate-400 font-bold py-4 mt-2">CERRAR</button>
+                <button onclick="location.reload()" class="w-full bg-slate-800 text-white py-3 rounded-xl mt-6 font-bold uppercase">Cerrar</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL REGISTRO -->
+    <!-- MODAL DE REGISTRO (CUESTIONARIO) -->
     <div id="modal-registro" class="modal">
         <div class="bg-white rounded-3xl p-6 max-w-sm mx-auto shadow-2xl">
-            <h3 class="text-xl font-black text-blue-900 mb-4 uppercase tracking-tighter">Nuevo Alumno</h3>
-            <form id="form-alumno" class="space-y-3">
-                <input type="text" id="reg-id" readonly class="w-full bg-slate-100 p-3 rounded-xl font-mono font-bold text-blue-600 border-none">
-                <input type="text" id="reg-nombre" placeholder="Nombre del Alumno" class="w-full p-4 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 ring-blue-500" required>
-                <input type="text" id="reg-tutor" placeholder="Nombre del Tutor" class="w-full p-4 bg-slate-50 rounded-xl border border-slate-200 outline-none" required>
-                <input type="tel" id="reg-tel" placeholder="Teléfono" class="w-full p-4 bg-slate-50 rounded-xl border border-slate-200 outline-none" required>
-                <textarea id="reg-alergias" placeholder="Alergias..." class="w-full p-4 bg-slate-50 rounded-xl border border-slate-200 outline-none"></textarea>
-                
-                <label class="block p-4 border-2 border-dashed border-slate-300 rounded-2xl text-center cursor-pointer hover:bg-slate-50">
-                    <span class="text-xs font-bold text-slate-500">📸 SUBIR O TOMAR FOTO</span>
-                    <input type="file" id="reg-foto" accept="image/*" class="hidden">
-                </label>
+            <h3 class="text-xl font-black text-blue-700 mb-4 uppercase text-center border-b pb-2">Nuevo Registro</h3>
+            <form id="form-alumno" class="space-y-4">
+                <!-- SUBIR ARCHIVO ENCABEZADO -->
+                <div class="bg-blue-50 p-4 rounded-2xl border-2 border-dashed border-blue-200 text-center">
+                    <label class="cursor-pointer block">
+                        <span class="text-xs font-bold text-blue-600 uppercase">📷 Subir foto desde galería</span>
+                        <input type="file" id="reg-foto" accept="image/*" class="hidden">
+                    </label>
+                </div>
 
-                <div class="flex gap-2 pt-4">
-                    <button type="button" onclick="toggleModal('modal-registro')" class="flex-1 font-bold text-slate-400">CANCELAR</button>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-400 ml-2">ID AUTOMÁTICO</label>
+                    <input type="text" id="reg-id" readonly class="w-full p-3 bg-slate-100 rounded-xl font-mono font-bold text-blue-600">
+                </div>
+
+                <input type="text" id="reg-nombre" placeholder="Nombre completo del alumno" class="w-full p-4 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 ring-blue-500" required>
+                <input type="text" id="reg-tutor" placeholder="Nombre del tutor / madre / padre" class="w-full p-4 bg-slate-50 rounded-xl border border-slate-200 outline-none" required>
+                <textarea id="reg-alergias" placeholder="Alergias o notas médicas importantes" class="w-full p-4 bg-slate-50 rounded-xl border border-slate-200 outline-none"></textarea>
+                
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="cerrarRegistro()" class="flex-1 text-slate-400 font-bold">CANCELAR</button>
                     <button type="submit" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg">GUARDAR</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL CONFIG -->
-    <div id="modal-config" class="modal">
-        <div class="bg-white rounded-3xl p-6 max-w-sm mx-auto shadow-2xl text-center">
-            <h3 class="font-black mb-6">OPCIONES</h3>
-            <button onclick="localStorage.clear(); location.reload();" class="w-full bg-red-50 p-4 text-red-600 rounded-2xl font-bold mb-3 border border-red-100">🗑️ BORRAR TODA LA BASE DE DATOS</button>
-            <button onclick="toggleModal('modal-config')" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-bold">VOLVER</button>
-        </div>
-    </div>
-
-    <div class="watermark uppercase">PRIMARIA EL NAYAR DURANGO</div>
+    <!-- MARCA DE AGUA -->
+    <div class="watermark uppercase">Gestión Escolares Grupo A9</div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('alumnos_db')) || {};
-        let html5QrCode = null;
+        let baseDatos = JSON.parse(localStorage.getItem('nayardb')) || {};
+        let html5QrCode;
 
-        function toggleModal(id) {
-            const m = document.getElementById(id);
-            m.style.display = (m.style.display === 'block') ? 'none' : 'block';
-        }
-
-        // SOLUCIÓN CÁMARA: Alternar encendido/apagado para liberar recursos
-        async function alternarCamara() {
-            const container = document.getElementById('reader-container');
-            const btnText = document.getElementById('scan-text');
+        // --- FUNCIONES DE CÁMARA ---
+        async function gestionarCamara() {
+            const cont = document.getElementById('cont-lector');
+            const btn = document.getElementById('btn-camara');
 
             if (html5QrCode && html5QrCode.getState() === 2) {
                 await html5QrCode.stop();
-                container.classList.add('hidden');
-                btnText.innerText = "📷 INICIAR ESCÁNER QR";
+                cont.classList.add('hidden');
+                btn.innerText = "📷 ABRIR LECTOR QR";
             } else {
-                container.classList.remove('hidden');
-                btnText.innerText = "🛑 DETENER CÁMARA";
+                cont.classList.remove('hidden');
+                btn.innerText = "🛑 DETENER CÁMARA";
                 if(!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                 
+                // Dispara solicitud de permiso
                 html5QrCode.start(
                     { facingMode: "environment" }, 
                     { fps: 10, qrbox: 250 },
-                    mostrarFicha
+                    (texto) => { mostrarFicha(texto) }
                 ).catch(err => {
-                    alert("ERROR: La cámara no está lista o no diste permisos.");
-                    cerrarCamaraManual();
+                    alert("Error: Asegúrate de usar HTTPS y dar permisos a la cámara.");
+                    cont.classList.add('hidden');
                 });
             }
         }
 
-        function cerrarCamaraManual() {
-            if(html5QrCode) html5QrCode.stop().catch(()=>{});
-            document.getElementById('reader-container').classList.add('hidden');
-            document.getElementById('scan-text').innerText = "📷 INICIAR ESCÁNER QR";
+        // --- REGISTRO Y BASE DE DATOS ---
+        function abrirRegistro() {
+            const indices = Object.keys(baseDatos).length + 1;
+            const nuevoID = "ALUM-" + indices.toString().padStart(3, '0');
+            document.getElementById('reg-id').value = nuevoID;
+            document.getElementById('modal-registro').style.display = 'block';
         }
 
-        // BUSCADOR MANUAL
-        function buscarAlumno() {
-            const query = document.getElementById('buscador').value.toUpperCase();
-            const resultados = document.getElementById('resultados-busqueda');
-            resultados.innerHTML = '';
-            
-            if (query.length < 2) {
-                resultados.classList.add('hidden');
-                return;
-            }
-
-            const filtrados = Object.keys(db).filter(id => 
-                id.includes(query) || db[id].nombre.toUpperCase().includes(query)
-            );
-
-            if (filtrados.length > 0) {
-                resultados.classList.remove('hidden');
-                filtrados.forEach(id => {
-                    const div = document.createElement('div');
-                    div.className = "p-4 border-b hover:bg-slate-50 cursor-pointer flex justify-between items-center";
-                    div.innerHTML = <div><p class="font-bold text-slate-800">${db[id].nombre}</p><p class="text-[10px] text-green-600 font-mono">${id}</p></div><span>➡️</span>;
-                    div.onclick = () => {
-                        resultados.classList.add('hidden');
-                        document.getElementById('buscador').value = '';
-                        mostrarFicha(id);
-                    };
-                    resultados.appendChild(div);
-                });
-            } else {
-                resultados.classList.add('hidden');
-            }
-        }
-
-        function mostrarFicha(id) {
-            const alumno = db[id.toUpperCase().trim()];
-            if (alumno) {
-                cerrarCamaraManual();
-                document.getElementById('student-card').classList.remove('hidden');
-                document.getElementById('st-nombre').innerText = alumno.nombre;
-                document.getElementById('st-id-display').innerText = id;
-                document.getElementById('st-tutor').innerText = alumno.tutor;
-                document.getElementById('st-alergias').innerText = alumno.alergias;
-                document.getElementById('st-tel').href = "tel:" + alumno.contacto;
-
-                const img = document.getElementById('st-foto');
-                const placeholder = document.getElementById('st-sin-foto');
-                if(alumno.foto) {
-                    img.src = alumno.foto;
-                    img.classList.remove('hidden');
-                    placeholder.classList.add('hidden');
-                } else {
-                    img.classList.add('hidden');
-                    placeholder.classList.remove('hidden');
-                }
-            } else {
-                alert("ID no encontrado");
-            }
-        }
-
-        function cerrarFicha() {
-            document.getElementById('student-card').classList.add('hidden');
-        }
-
-        function prepararNuevoAlumno() {
-            const num = Object.keys(db).length + 1;
-            const nextID = "ALUM-" + num.toString().padStart(3, '0');
-            document.getElementById('reg-id').value = nextID;
-            toggleModal('modal-registro');
+        function cerrarRegistro() {
+            document.getElementById('modal-registro').style.display = 'none';
         }
 
         document.getElementById('form-alumno').onsubmit = function(e) {
             e.preventDefault();
             const id = document.getElementById('reg-id').value;
             const fotoInput = document.getElementById('reg-foto');
-            
-            const guardar = (base64) => {
-                db[id] = {
+
+            const guardar = (imgData) => {
+                baseDatos[id] = {
                     nombre: document.getElementById('reg-nombre').value,
                     tutor: document.getElementById('reg-tutor').value,
-                    contacto: document.getElementById('reg-tel').value,
                     alergias: document.getElementById('reg-alergias').value || "Ninguna",
-                    foto: base64
+                    foto: imgData
                 };
-                localStorage.setItem('alumnos_db', JSON.stringify(db));
+                localStorage.setItem('nayardb', JSON.stringify(baseDatos));
+                alert("Alumno registrado: " + id);
                 location.reload();
             };
 
@@ -238,7 +169,60 @@
                 guardar(null);
             }
         };
+
+        // --- BUSCADOR MANUAL ---
+        function buscadorManual() {
+            const txt = document.getElementById('input-busqueda').value.toUpperCase();
+            const lista = document.getElementById('lista-busqueda');
+            lista.innerHTML = '';
+
+            if (txt.length < 2) { lista.classList.add('hidden'); return; }
+
+            const resultados = Object.keys(baseDatos).filter(id => 
+                id.includes(txt) || baseDatos[id].nombre.toUpperCase().includes(txt)
+            );
+
+            if (resultados.length > 0) {
+                lista.classList.remove('hidden');
+                resultados.forEach(id => {
+                    const item = document.createElement('div');
+                    item.className = "p-4 border-b hover:bg-blue-50 cursor-pointer flex justify-between";
+                    item.innerHTML = <span>${baseDatos[id].nombre}</span> <b class="text-blue-600">${id}</b>;
+                    item.onclick = () => { mostrarFicha(id); lista.classList.add('hidden'); };
+                    lista.appendChild(item);
+                });
+            } else {
+                lista.classList.add('hidden');
+            }
+        }
+
+        // --- MOSTRAR FICHA ---
+        function mostrarFicha(id) {
+            const data = baseDatos[id.toUpperCase().trim()];
+            if (data) {
+                if(html5QrCode) html5QrCode.stop().catch(()=>{});
+                document.getElementById('cont-lector').classList.add('hidden');
+                document.getElementById('ficha-alumno').classList.remove('hidden');
+                
+                document.getElementById('res-nombre').innerText = data.nombre;
+                document.getElementById('res-id').innerText = "CÓDIGO: " + id;
+                document.getElementById('res-tutor').innerText = data.tutor;
+                document.getElementById('res-alergias').innerText = data.alergias;
+
+                const visor = document.getElementById('img-alumno');
+                const placeholders = document.getElementById('sin-foto');
+                if(data.foto) {
+                    visor.src = data.foto;
+                    visor.classList.remove('hidden');
+                    placeholders.classList.add('hidden');
+                } else {
+                    visor.classList.add('hidden');
+                    placeholders.classList.remove('hidden');
+                }
+            } else {
+                alert("El ID " + id + " no existe en la base de datos.");
+            }
+        }
     </script>
 </body>
 </html>
-
