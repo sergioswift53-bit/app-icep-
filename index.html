@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Escolar ICEP - QR</title>
+    <script src="https://unpkg.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .watermark { position: fixed; bottom: 15px; width: 100%; text-align: center; color: rgba(0,0,0,0.4); font-weight: bold; pointer-events: none; z-index: 50; }
+        .logo-icep { max-width: 120px; margin: 0 auto 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-24">
+
+    <div class="max-w-md mx-auto p-6">
+        <!-- LOGOTIPO Y TÍTULO -->
+        <header class="text-center mb-8">
+            <img src="https://icep.edu.mx" alt="Logo ICEP" class="logo-icep">
+            <h1 class="text-3xl font-extrabold text-[#004a99]">GESTIÓN ESCOLAR</h1>
+            <p class="text-slate-500 font-medium">ICEP DURANGO</p>
+        </header>
+
+        <!-- BUSQUEDA MANUAL -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Ingresar ID manualmente:</label>
+            <div class="flex gap-2">
+                <input type="text" id="manual-id" placeholder="Ej: ALUM-001" class="flex-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none uppercase">
+                <button onclick="buscarManual()" class="bg-[#004a99] text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">Buscar</button>
+            </div>
+        </div>
+
+        <!-- OPCIONES DE QR -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <button onclick="iniciarCamara()" class="flex flex-col items-center justify-center bg-white p-5 rounded-xl shadow-sm border-2 border-transparent hover:border-blue-500 transition active:scale-95">
+                <span class="text-3xl mb-2">📷</span>
+                <span class="text-xs font-black text-gray-600">ABRIR CÁMARA</span>
+            </button>
+            
+            <label class="flex flex-col items-center justify-center bg-white p-5 rounded-xl shadow-sm border-2 border-transparent hover:border-blue-500 cursor-pointer transition active:scale-95 text-center">
+                <span class="text-3xl mb-2">📁</span>
+                <span class="text-xs font-black text-gray-600">SUBIR IMAGEN</span>
+                <input type="file" id="qr-input-file" accept="image/*" class="hidden">
+            </label>
+        </div>
+
+        <!-- CONTENEDOR DEL SCANNER -->
+        <div id="reader" class="rounded-2xl overflow-hidden shadow-inner bg-black min-h-[300px] hidden border-4 border-blue-100"></div>
+
+        <!-- FICHA DEL ESTUDIANTE -->
+        <div id="student-card" class="hidden mt-6 bg-white rounded-2xl shadow-2xl p-6 border-t-8 border-[#004a99] animate-in fade-in zoom-in duration-300">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <p class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">Ficha del Estudiante</p>
+                    <h2 class="text-2xl font-black text-gray-800" id="st-nombre">NOMBRE</h2>
+                </div>
+                <span class="bg-blue-50 text-blue-700 text-[10px] font-black px-2 py-1 rounded-full border border-blue-200" id="st-id-tag">ID</span>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="flex items-center space-x-3 text-gray-600">
+                    <span class="text-xl">🎓</span>
+                    <div><p class="text-[10px] uppercase font-bold text-gray-400 leading-none">Grado</p><p id="st-grado" class="font-bold text-gray-700"></p></div>
+                </div>
+
+                <div class="flex items-center space-x-3 bg-red-50 p-3 rounded-xl border border-red-100">
+                    <span class="text-xl">⚠️</span>
+                    <div><p class="text-[10px] uppercase font-bold text-red-400 leading-none">Alergias / Médicos</p><p id="st-alergias" class="font-black text-red-600"></p></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 border-t pt-4">
+                    <div><p class="text-[10px] uppercase font-bold text-gray-400">Tutor Responsable</p><p id="st-tutor" class="font-bold text-gray-800 text-sm"></p></div>
+                    <div><p class="text-[10px] uppercase font-bold text-gray-400">Emergencias</p><a id="st-tel" href="#" class="text-blue-600 font-black text-sm underline flex items-center gap-1">📞 Llamar</a></div>
+                </div>
+            </div>
+
+            <button onclick="resetApp()" class="mt-8 w-full bg-gray-100 py-3 rounded-xl font-black text-gray-500 hover:bg-gray-200 transition">REINICIAR</button>
+        </div>
+    </div>
+
+    <!-- MARCA DE AGUA CORREGIDA -->
+    <div class="watermark text-[10px] tracking-[0.2em]">
+        DISEÑADO POR EL <span class="text-blue-600 font-black">GRUPO A9</span>
+    </div>
+
+    <script>
+        const estudiantes = {
+            "ALUM-001": { nombre: "Juan Pérez García", grado: "3° Semestre - ICEP", alergias: "Nueces y Polen", contacto: "5551234567", tutor: "María García" },
+            "ALUM-002": { nombre: "Lucía Fernández", grado: "1° Semestre - ICEP", alergias: "Ninguna", contacto: "5559876543", tutor: "Roberto F." }
+        };
+
+        let scanner;
+
+        function mostrarFicha(id) {
+            const alumno = estudiantes[id];
+            if (alumno) {
+                if(scanner) scanner.clear();
+                document.getElementById('reader').classList.add('hidden');
+                document.getElementById('student-card').classList.remove('hidden');
+                
+                document.getElementById('st-id-tag').innerText = id;
+                document.getElementById('st-nombre').innerText = alumno.nombre;
+                document.getElementById('st-grado').innerText = alumno.grado;
+                document.getElementById('st-alergias').innerText = alumno.alergias;
+                document.getElementById('st-tutor').innerText = alumno.tutor;
+                document.getElementById('st-tel').href = "tel:" + alumno.contacto;
+            } else {
+                alert("Alumno no registrado en la base de datos ICEP.");
+            }
+        }
+
+        function buscarManual() {
+            const val = document.getElementById('manual-id').value.toUpperCase().trim();
+            if(val) mostrarFicha(val);
+        }
+
+        function iniciarCamara() {
+            document.getElementById('reader').classList.remove('hidden');
+            scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+            scanner.render((text) => mostrarFicha(text));
+        }
+
+        document.getElementById('qr-input-file').addEventListener('change', e => {
+            if (e.target.files.length === 0) return;
+            const file = e.target.files[0];
+            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.scanFile(file, true)
+                .then(decodedText => mostrarFicha(decodedText))
+                .catch(err => alert("Error: No se pudo detectar un QR en esta imagen. Intenta con otra foto."));
+        });
+
+        function resetApp() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
