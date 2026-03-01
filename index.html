@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Primaria El Nayar - Gestión Escolar</title>
+    <title>Escuela Primaria El Nayar Durango - Sistema</title>
     <script src="https://unpkg.com"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -17,16 +17,17 @@
     <div class="max-w-md mx-auto p-5">
         <header class="flex justify-between items-center mb-6">
             <div>
-                <h1 class="text-2xl font-black text-green-800">EL NAYAR</h1>
+                <!-- TÍTULO ACTUALIZADO -->
+                <h1 class="text-2xl font-black text-green-800 leading-tight">ESCUELA PRIMARIA<br>EL NAYAR DURANGO</h1>
                 <p class="text-gray-500 font-bold text-[10px] uppercase tracking-widest">Lector Inteligente</p>
             </div>
             <button onclick="toggleModal('modal-config')" class="bg-white p-3 rounded-full shadow-md text-xl">⚙️</button>
         </header>
 
-        <!-- BOTONES PRINCIPALES -->
         <div class="grid grid-cols-1 gap-3 mb-6">
+            <!-- BOTÓN CON SOLICITUD DE PERMISOS ACTIVA -->
             <button onclick="activarCamaraSegura()" class="w-full bg-green-600 text-white py-4 rounded-2xl shadow-lg font-black flex items-center justify-center gap-2 active:scale-95 transition-all">
-                📷 ESCANEAR QR
+                📷 ESCANEAR QR (ACTIVAR CÁMARA)
             </button>
             <button onclick="prepararNuevoAlumno()" class="w-full bg-blue-600 text-white py-4 rounded-2xl shadow-lg font-black flex items-center justify-center gap-2 active:scale-95 transition-all">
                 ➕ AGREGAR NUEVO ALUMNO
@@ -95,8 +96,8 @@
     <div class="watermark uppercase">SISTEMA DINÁMICO A9</div>
 
     <script>
-        // Cargar datos de LocalStorage o iniciar vacíos
         let db = JSON.parse(localStorage.getItem('alumnos_db')) || {};
+        let html5QrCode;
 
         function toggleModal(id) {
             const m = document.getElementById(id);
@@ -104,41 +105,37 @@
         }
 
         function prepararNuevoAlumno() {
-            // Calcular consecutivo ALUM-001
             const indices = Object.keys(db).map(k => parseInt(k.split('-')[1]));
             const max = indices.length > 0 ? Math.max(...indices) : 0;
             const nextID = "ALUM-" + (max + 1).toString().padStart(3, '0');
-            
             document.getElementById('reg-id').value = nextID;
             toggleModal('modal-registro');
         }
 
-        document.getElementById('form-alumno').onsubmit = function(e) {
-            e.preventDefault();
-            const id = document.getElementById('reg-id').value;
-            const fotoFile = document.getElementById('reg-foto').files[0];
+        // FUNCIÓN MODIFICADA PARA FORZAR PERMISOS
+        async function activarCamaraSegura() {
+            const container = document.getElementById('reader-container');
+            container.classList.remove('hidden');
 
-            const guardar = (fotoBase64) => {
-                db[id] = {
-                    nombre: document.getElementById('reg-nombre').value,
-                    tutor: document.getElementById('reg-tutor').value,
-                    contacto: document.getElementById('reg-tel').value,
-                    alergias: document.getElementById('reg-alergias').value || "Ninguna",
-                    foto: fotoBase64 || null
-                };
-                localStorage.setItem('alumnos_db', JSON.stringify(db));
-                alert("Alumno " + id + " guardado con éxito.");
-                location.reload();
-            };
-
-            if (fotoFile) {
-                const reader = new FileReader();
-                reader.onload = (e) => guardar(e.target.result);
-                reader.readAsDataURL(fotoFile);
-            } else {
-                guardar(null);
+            // Si ya existe una instancia, la limpiamos para forzar reinicio de permisos
+            if (html5QrCode) {
+                try {
+                    await html5QrCode.stop();
+                    html5QrCode.clear();
+                } catch (e) { /* Silencioso si no estaba corriendo */ }
             }
-        };
+
+            html5QrCode = new Html5Qrcode("reader");
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            // Start dispara la solicitud de permiso del navegador
+            html5QrCode.start({ facingMode: "environment" }, config, mostrarFicha)
+            .catch(err => {
+                console.error(err);
+                alert("Para escanear, debes permitir el acceso a la cámara en la configuración de tu navegador.");
+            });
+        }
 
         function mostrarFicha(id) {
             const alumno = db[id.toUpperCase().trim()];
@@ -163,19 +160,38 @@
             }
         }
 
-        let html5QrCode;
-        function activarCamaraSegura() {
-            document.getElementById('reader-container').classList.remove('hidden');
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, mostrarFicha)
-            .catch(err => alert("Error de cámara."));
-        }
+        document.getElementById('form-alumno').onsubmit = function(e) {
+            e.preventDefault();
+            const id = document.getElementById('reg-id').value;
+            const fotoInput = document.getElementById('reg-foto');
+            
+            const guardar = (fotoBase64) => {
+                db[id] = {
+                    nombre: document.getElementById('reg-nombre').value,
+                    tutor: document.getElementById('reg-tutor').value,
+                    contacto: document.getElementById('reg-tel').value,
+                    alergias: document.getElementById('reg-alergias').value || "Ninguna",
+                    foto: fotoBase64 || null
+                };
+                localStorage.setItem('alumnos_db', JSON.stringify(db));
+                alert("Alumno " + id + " guardado con éxito.");
+                location.reload();
+            };
+
+            if (fotoInput.files && fotoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (ev) => guardar(ev.target.result);
+                reader.readAsDataURL(fotoInput.files[0]);
+            } else {
+                guardar(null);
+            }
+        };
 
         function exportarDatos() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "respaldo_alumnos.json");
+            downloadAnchorNode.setAttribute("download", "respaldo_el_nayar.json");
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
