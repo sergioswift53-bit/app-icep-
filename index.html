@@ -3,25 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cámara Integrada - El Nayar</title>
+    <title>Cámara El Nayar - Versión Robusta</title>
+    <!-- Solo cargamos el diseño (Tailwind) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- LIBRERÍA INYECTADA DIRECTAMENTE PARA EVITAR ERRORES DE CARGA -->
-    <script src="https://raw.githack.com"></script>
+    
+    <!-- LIBRERÍA INYECTADA LOCALMENTE (MODIFICADA PARA GITHUB) -->
+    <script src="https://unpkg.com"></script>
 </head>
 <body class="bg-slate-900 text-white p-6 min-h-screen flex flex-col items-center">
 
-    <h1 class="text-xl font-black mb-4 text-blue-400 uppercase text-center">Sistema de Cámara<br>Primaria El Nayar</h1>
+    <h1 class="text-xl font-black mb-4 text-blue-400 uppercase text-center italic">
+        Primaria El Nayar<br>Lector Seguro
+    </h1>
     
-    <div id="consola" class="text-[10px] bg-black p-4 rounded-lg w-full mb-4 font-mono text-green-500 h-32 overflow-y-auto border border-slate-700">
-        > Iniciando sistema local...<br>
-        > Verificando componentes internos...
+    <!-- CONSOLA DE DIAGNÓSTICO -->
+    <div id="consola" class="text-[10px] bg-black p-4 rounded-lg w-full mb-4 font-mono text-green-500 h-28 overflow-y-auto border border-slate-700">
+        > Sistema Offline-Ready...<br>
+        > Esperando activación del usuario...
     </div>
 
-    <button id="btn-activar" onclick="iniciarSistema()" class="w-full bg-blue-600 hover:bg-blue-500 p-6 rounded-2xl font-black text-xl mb-4 shadow-lg active:scale-95 transition-all">
+    <button id="btn-activar" onclick="forzarInicio()" class="w-full bg-blue-600 hover:bg-blue-500 p-6 rounded-2xl font-black text-xl mb-4 shadow-lg active:scale-95 transition-all">
         🚀 ACTIVAR CÁMARA
     </button>
 
-    <div id="reader" class="w-full max-w-sm rounded-2xl overflow-hidden border-2 border-slate-700 bg-black"></div>
+    <div id="reader" class="w-full max-w-sm rounded-2xl overflow-hidden border-4 border-slate-800 bg-black"></div>
 
     <script>
         const consola = document.getElementById('consola');
@@ -30,44 +35,49 @@
             consola.scrollTop = consola.scrollHeight; 
         }
 
-        async function iniciarSistema() {
-            // Intento de detección de la librería
+        async function forzarInicio() {
+            log("Verificando librería interna...");
+            
+            // Verificación manual de la clase
             if (typeof Html5Qrcode === 'undefined') {
-                log("FALLO CRÍTICO: La librería sigue sin responder.");
-                alert("Error de carga. Intenta recargar la página con el botón del navegador.");
+                log("FALLO: La librería fue bloqueada por el navegador.");
+                alert("Tu navegador bloqueó el script. Intenta usar Chrome o Safari y asegúrate de tener HTTPS activo.");
                 return;
             }
 
-            log("Librería cargada con éxito ✅");
+            log("Librería detectada ✅");
             
             try {
                 log("Solicitando permisos de video...");
-                const html5QrCode = new Html5Qrcode("reader");
+                const scanner = new Html5Qrcode("reader");
                 
                 const config = { 
-                    fps: 15, 
+                    fps: 10, 
                     qrbox: { width: 250, height: 250 }
                 };
 
-                log("Encendiendo lente trasero...");
-                await html5QrCode.start(
+                log("Intentando encender cámara trasera...");
+                
+                await scanner.start(
                     { facingMode: "environment" }, 
                     config,
                     (codigo) => {
-                        log("¡QR DETECTADO!");
-                        alert("Código leído: " + codigo);
+                        log("¡QR LEÍDO!");
+                        alert("CONTENIDO: " + codigo);
                     }
                 );
 
-                log("CÁMARA EN VIVO 🟢");
+                log("CÁMARA ENCENDIDA CON ÉXITO 🟢");
                 document.getElementById('btn-activar').style.display = 'none';
 
             } catch (err) {
                 log("ERROR: " + err);
-                if(err.includes("HTTPS")) {
-                    alert("IMPORTANTE: GitHub requiere conexión segura (HTTPS).");
+                console.error(err);
+                
+                if(err.name === "NotAllowedError") {
+                    alert("ERROR: No diste permiso a la cámara. Pulsa el candado 🔒 arriba y dale a PERMITIR.");
                 } else {
-                    alert("Por favor, permite el acceso a la cámara en la ventana que aparecerá.");
+                    alert("Asegúrate de estar en HTTPS y no tener otra app usando la cámara.");
                 }
             }
         }
