@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escuela Primaria El Nayar</title>
+    <!-- Librerías fundamentales -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen p-4 pb-20 font-sans">
+
+    <!-- CABECERA -->
+    <header class="text-center py-6">
+        <h1 class="text-2xl font-black text-blue-800 uppercase tracking-tighter">
+            Escuela Primaria<br>El Nayar Durango
+        </h1>
+        <div class="h-1 w-20 bg-blue-600 mx-auto mt-2 rounded-full"></div>
+    </header>
+
+    <main class="max-w-md mx-auto space-y-4">
+        <!-- BUSCADOR (YA FUNCIONAL) -->
+        <section>
+            <input type="text" id="txt-buscar" oninput="buscarEnDB()" placeholder="🔍 Buscar por nombre o ALUM-..." 
+                class="w-full p-4 rounded-2xl border-none shadow-md focus:ring-2 ring-blue-500 outline-none">
+            <div id="sugerencias" class="hidden bg-white mt-1 rounded-xl shadow-xl border border-slate-200 overflow-hidden"></div>
+        </section>
+
+        <!-- BOTONES DE ACCIÓN -->
+        <div class="grid grid-cols-1 gap-3">
+            <button onclick="abrirEscaner()" class="w-full bg-blue-700 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-transform">
+                📷 ACTIVAR CÁMARA QR
+            </button>
+            <button onclick="mostrarModal('mod-registro')" class="w-full bg-white text-blue-800 border-2 border-blue-700 py-4 rounded-2xl font-bold shadow-sm">
+                ➕ REGISTRAR NUEVO ALUMNO
+            </button>
+        </div>
+
+        <!-- ZONA DE CÁMARA (OCULTA) -->
+        <div id="zona-camara" class="hidden bg-black rounded-2xl overflow-hidden relative shadow-2xl">
+            <div id="reader"></div>
+            <button onclick="cerrarEscaner()" class="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold">CERRAR X</button>
+        </div>
+
+        <!-- FICHA DEL ALUMNO (RESULTADO) -->
+        <article id="ficha" class="hidden bg-white rounded-3xl shadow-2xl overflow-hidden border-t-8 border-blue-700 animate-pulse-once">
+            <div class="p-6">
+                <h2 id="f-nombre" class="text-2xl font-black text-slate-800 uppercase"></h2>
+                <p id="f-id" class="text-blue-600 font-mono font-bold mb-4 italic"></p>
+                <div class="space-y-2 border-t pt-4 text-sm text-slate-600">
+                    <p><b>👤 Tutor:</b> <span id="f-tutor"></span></p>
+                    <div class="p-3 bg-red-50 text-red-700 rounded-xl font-bold">⚠️ Alergias: <span id="f-alergias"></span></div>
+                </div>
+                <button onclick="ocultarFicha()" class="w-full bg-slate-800 text-white py-4 rounded-xl mt-6 font-bold">NUEVA BÚSQUEDA</button>
+            </div>
+        </article>
+    </main>
+
+    <!-- VENTANA EMERGENTE: REGISTRO -->
+    <div id="mod-registro" class="fixed inset-0 bg-black/80 z-50 hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl p-6 max-w-sm mx-auto mt-10 shadow-2xl">
+            <h3 class="text-xl font-bold text-blue-800 mb-4 text-center uppercase">Nuevo Alumno</h3>
+            <form id="frm-registro" class="space-y-4">
+                <input type="text" id="reg-id" readonly class="w-full p-3 bg-slate-100 rounded-xl font-mono font-bold text-blue-700">
+                <input type="text" id="reg-nombre" placeholder="Nombre completo" class="w-full p-4 border rounded-xl" required>
+                <input type="text" id="reg-tutor" placeholder="Nombre del tutor" class="w-full p-4 border rounded-xl" required>
+                <textarea id="reg-alergias" placeholder="Alergias..." class="w-auto w-full p-4 border rounded-xl"></textarea>
+                <div class="flex gap-2">
+                    <button type="button" onclick="ocultarModal('mod-registro')" class="flex-1 text-slate-400 font-bold">CANCELAR</button>
+                    <button type="submit" class="flex-1 bg-blue-700 text-white py-4 rounded-xl font-bold">GUARDAR</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="fixed bottom-4 w-full text-center pointer-events-none opacity-30">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-blue-900">Gestión Escolares Grupo A9</p>
+    </footer>
+
+    <script>
+        // --- BASE DE DATOS LOCAL ---
+        let db = JSON.parse(localStorage.getItem('nayar_db')) || {};
+        let escanner = null;
+
+        // --- FUNCIONES DE NAVEGACIÓN ---
+        function mostrarModal(id) {
+            if(id === 'mod-registro') {
+                const total = Object.keys(db).length + 1;
+                document.getElementById('reg-id').value = "ALUM-" + total.toString().padStart(3, '0');
+            }
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function ocultarModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // --- LÓGICA DE REGISTRO ---
+        document.getElementById('frm-registro').onsubmit = function(e) {
+            e.preventDefault();
+            const id = document.getElementById('reg-id').value;
+            db[id] = {
+                nombre: document.getElementById('reg-nombre').value,
+                tutor: document.getElementById('reg-tutor').value,
+                alergias: document.getElementById('reg-alergias').value || "Ninguna"
+            };
+            localStorage.setItem('nayar_db', JSON.stringify(db));
+            alert("Alumno " + id + " registrado con éxito.");
+            location.reload();
+        };
+
+        // --- BUSCADOR ---
+        function buscarEnDB() {
+            const query = document.getElementById('txt-buscar').value.toUpperCase();
+            const sugerencias = document.getElementById('sugerencias');
+            sugerencias.innerHTML = '';
+            if(query.length < 2) { sugerencias.classList.add('hidden'); return; }
+
+            const coincidencias = Object.keys(db).filter(id => id.includes(query) || db[id].nombre.toUpperCase().includes(query));
+            if(coincidencias.length > 0) {
+                sugerencias.classList.remove('hidden');
+                coincidencias.forEach(id => {
+                    const d = document.createElement('div');
+                    d.className = "p-4 border-b hover:bg-blue-50 cursor-pointer flex justify-between";
+                    d.innerHTML = `<span>${db[id].nombre}</span><b class="text-blue-700">${id}</b>`;
+                    d.onclick = () => { verFicha(id); sugerencias.classList.add('hidden'); };
+                    sugerencias.appendChild(d);
+                });
+            }
+        }
+
+        // --- CÁMARA (MEJORADA) ---
+        async function abrirEscaner() {
+            document.getElementById('zona-camara').classList.remove('hidden');
+            if(!escanner) escanner = new Html5Qrcode("reader");
+            
+            // Forzar búsqueda de cámara trasera
+            escanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
+                verFicha(txt);
+            }).catch(err => {
+                alert("Error: Asegúrate de estar en HTTPS y permitir la cámara en el candado 🔒 de arriba.");
+                cerrarEscaner();
+            });
+        }
+
+        function cerrarEscaner() {
+            if(escanner) escanner.stop().catch(()=>{});
+            document.getElementById('zona-camara').classList.add('hidden');
+        }
+
+        // --- MOSTRAR RESULTADO ---
+        function verFicha(id) {
+            const alumno = db[id.toUpperCase().trim()];
+            if(!alumno) return alert("ID " + id + " no encontrado.");
+            
+            cerrarEscaner();
+            document.getElementById('ficha').classList.remove('hidden');
+            document.getElementById('f-nombre').innerText = alumno.nombre;
+            document.getElementById('f-id').innerText = id;
+            document.getElementById('f-tutor').innerText = alumno.tutor;
+            document.getElementById('f-alergias').innerText = alumno.alergias;
+        }
+
+        function ocultarFicha() { document.getElementById('ficha').classList.add('hidden'); }
+    </script>
+</body>
+</html>
