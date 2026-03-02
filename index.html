@@ -3,80 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reparación Cámara - El Nayar</title>
-    
-    <!-- Cargamos la librería con prioridad -->
-    <script src="https://cdnjs.cloudflare.com" integrity="sha512-r6rDA7W6ZeQhvl8S7yRVQUKVHdexqReOS2kyIg6um69jGqmmRJ8S7WnO8JJ3LQDlx7Oa8Sog1Wf46XdlmXp0mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    
+    <title>Cámara Integrada - El Nayar</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- LIBRERÍA INYECTADA DIRECTAMENTE PARA EVITAR ERRORES DE CARGA -->
+    <script src="https://raw.githack.com"></script>
 </head>
-<body class="bg-slate-900 text-white p-6 flex flex-col items-center min-h-screen">
+<body class="bg-slate-900 text-white p-6 min-h-screen flex flex-col items-center">
 
-    <h1 class="text-xl font-bold mb-4 text-blue-400 uppercase">Verificador de Cámara</h1>
+    <h1 class="text-xl font-black mb-4 text-blue-400 uppercase text-center">Sistema de Cámara<br>Primaria El Nayar</h1>
     
-    <!-- Consola de depuración -->
     <div id="consola" class="text-[10px] bg-black p-4 rounded-lg w-full mb-4 font-mono text-green-500 h-32 overflow-y-auto border border-slate-700">
-        > Sistema iniciado...<br>
-        > Esperando interacción...
+        > Iniciando sistema local...<br>
+        > Verificando componentes internos...
     </div>
 
-    <!-- Botón con protección de carga -->
-    <button id="btn-activar" onclick="intentarCarga()" class="w-full bg-blue-600 hover:bg-blue-500 p-6 rounded-2xl font-black text-xl mb-4 shadow-lg active:scale-95 transition-all">
-        PROBAR CÁMARA AHORA
+    <button id="btn-activar" onclick="iniciarSistema()" class="w-full bg-blue-600 hover:bg-blue-500 p-6 rounded-2xl font-black text-xl mb-4 shadow-lg active:scale-95 transition-all">
+        🚀 ACTIVAR CÁMARA
     </button>
 
-    <div id="reader" class="w-full max-w-sm rounded-2xl overflow-hidden border-2 border-slate-700 bg-black shadow-2xl"></div>
+    <div id="reader" class="w-full max-w-sm rounded-2xl overflow-hidden border-2 border-slate-700 bg-black"></div>
 
     <script>
         const consola = document.getElementById('consola');
-        
-        function escribirLog(mensaje) {
-            consola.innerHTML += `<br>> ${mensaje}`;
-            consola.scrollTop = consola.scrollHeight;
+        function log(m) { 
+            consola.innerHTML += `<br>> ${m}`; 
+            consola.scrollTop = consola.scrollHeight; 
         }
 
-        async function intentarCarga() {
-            // Verificar si la librería existe
+        async function iniciarSistema() {
+            // Intento de detección de la librería
             if (typeof Html5Qrcode === 'undefined') {
-                escribirLog("ERROR: Librería no cargada aún. Revisa tu conexión.");
-                alert("La librería QR aún no carga. Espera 3 segundos y reintenta.");
+                log("FALLO CRÍTICO: La librería sigue sin responder.");
+                alert("Error de carga. Intenta recargar la página con el botón del navegador.");
                 return;
             }
 
-            escribirLog("Librería detectada correctamente.");
+            log("Librería cargada con éxito ✅");
             
             try {
-                escribirLog("Solicitando acceso al hardware...");
-                
-                // Forzamos el encendido manual
+                log("Solicitando permisos de video...");
                 const html5QrCode = new Html5Qrcode("reader");
                 
                 const config = { 
-                    fps: 10, 
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
+                    fps: 15, 
+                    qrbox: { width: 250, height: 250 }
                 };
 
-                escribirLog("Iniciando lente trasero...");
-                
+                log("Encendiendo lente trasero...");
                 await html5QrCode.start(
                     { facingMode: "environment" }, 
                     config,
-                    (txt) => {
-                        escribirLog("¡CÓDIGO DETECTADO!");
-                        alert("Lectura: " + txt);
+                    (codigo) => {
+                        log("¡QR DETECTADO!");
+                        alert("Código leído: " + codigo);
                     }
                 );
 
-                escribirLog("CÁMARA ACTIVA ✅");
+                log("CÁMARA EN VIVO 🟢");
                 document.getElementById('btn-activar').style.display = 'none';
 
             } catch (err) {
-                escribirLog("FALLO: " + err);
+                log("ERROR: " + err);
                 if(err.includes("HTTPS")) {
-                    alert("ERROR: GitHub requiere HTTPS para usar la cámara.");
+                    alert("IMPORTANTE: GitHub requiere conexión segura (HTTPS).");
                 } else {
-                    alert("Asegúrate de dar permiso en el candado de arriba 🔒");
+                    alert("Por favor, permite el acceso a la cámara en la ventana que aparecerá.");
                 }
             }
         }
