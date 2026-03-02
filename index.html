@@ -3,59 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prueba de Cámara - El Nayar</title>
-    <!-- Librería de lectura QR -->
+    <title>Depuración Cámara - El Nayar</title>
     <script src="https://unpkg.com"></script>
-    <!-- Estilo rápido -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center p-6">
+<body class="bg-slate-800 text-white p-6 flex flex-col items-center">
 
-    <h1 class="text-xl font-bold mb-8 text-blue-400">PRUEBA DE CÁMARA QR</h1>
+    <h1 class="text-lg font-bold mb-4">ESTADO DEL SISTEMA</h1>
+    
+    <div id="info" class="text-xs bg-black p-4 rounded-lg w-full mb-4 font-mono text-green-400">
+        Esperando interacción...
+    </div>
 
-    <!-- El botón principal -->
-    <button onclick="encenderCamara()" class="w-full max-w-xs bg-blue-600 hover:bg-blue-500 py-6 rounded-2xl font-black text-xl shadow-2xl transition-all active:scale-95">
-        📷 ABRIR CÁMARA
+    <button onclick="probarCamara()" class="w-full bg-blue-600 p-6 rounded-2xl font-bold text-xl mb-4">
+        SOLICITAR ACCESO YA
     </button>
 
-    <!-- Contenedor donde se verá el video -->
-    <div id="lector" class="w-full max-w-sm mt-8 rounded-3xl overflow-hidden border-4 border-blue-500 hidden"></div>
-
-    <p id="status" class="mt-4 text-slate-400 text-sm italic text-center">
-        Pulsa el botón para solicitar permisos
-    </p>
+    <div id="reader" class="w-full max-w-sm rounded-xl overflow-hidden"></div>
 
     <script>
-        let html5QrCode;
+        function log(msg) {
+            document.getElementById('info').innerHTML += "<br>> " + msg;
+        }
 
-        async function encenderCamara() {
-            const status = document.getElementById('status');
-            const contenedor = document.getElementById('lector');
+        async function probarCamara() {
+            log("Iniciando secuencia...");
             
-            status.innerText = "Solicitando permisos...";
-            contenedor.classList.remove('hidden');
+            // Verificamos si estamos en HTTPS
+            if (location.protocol !== 'https:') {
+                log("ERROR: No estás en HTTPS. La cámara se bloqueará.");
+                alert("Debes usar HTTPS para que la cámara funcione.");
+                return;
+            }
 
-            // Instanciamos el lector
-            html5QrCode = new Html5Qrcode("lector");
+            try {
+                log("Pidendo permiso al sistema...");
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                log("¡Permiso de hardware concedido!");
+                stream.getTracks().forEach(track => track.stop()); // Cerramos el test
 
-            const configuracion = { 
-                fps: 10, 
-                qrbox: { width: 250, height: 250 } 
-            };
-
-            // Intentamos arrancar la cámara trasera
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                configuracion,
-                (codigoTexto) => {
-                    // Si lee algo, lanzamos un aviso
-                    alert("¡Lectura exitosa!: " + codigoTexto);
-                }
-            ).catch(err => {
-                status.innerText = "Error: " + err;
-                console.error(err);
-                alert("No se pudo abrir la cámara. Revisa que estés en HTTPS y hayas dado permiso.");
-            });
+                const html5QrCode = new Html5Qrcode("reader");
+                await html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    { fps: 10, qrbox: 250 },
+                    (txt) => alert("QR Leído: " + txt)
+                );
+                log("Cámara encendida con éxito.");
+            } catch (err) {
+                log("FALLO: " + err.name + " - " + err.message);
+                alert("Error: " + err.message);
+            }
         }
     </script>
 </body>
